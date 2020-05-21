@@ -9,6 +9,7 @@ import (
 	"sort"
 	"time"
 
+	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcd/wire"
 	"github.com/mit-dci/utreexo/accumulator"
 )
@@ -38,13 +39,14 @@ var regTestGenHash = Hash{
 // For a given BitcoinNet, yields the genesis hash
 // If the BitcoinNet is not supported, an error is
 // returned.
-func GenHashForNet(net wire.BitcoinNet) (*Hash, error) {
-	switch net {
-	case wire.TestNet3:
+func GenHashForNet(p chaincfg.Params) (*Hash, error) {
+
+	switch p.Name {
+	case "testnet3":
 		return &testNet3GenHash, nil
-	case wire.MainNet:
+	case "mainnet":
 		return &mainNetGenHash, nil
-	case wire.TestNet: // yes, this is regtest
+	case "regtest":
 		return &regTestGenHash, nil
 	}
 	return nil, fmt.Errorf("net not supported\n")
@@ -52,7 +54,7 @@ func GenHashForNet(net wire.BitcoinNet) (*Hash, error) {
 
 // Checks if the blk00000.dat file in the current directory
 // is testnet3 or mainnet or regtest.
-func CheckNet(net wire.BitcoinNet) {
+func CheckNet(p chaincfg.Params) {
 	f, err := os.Open("blk00000.dat")
 	if err != nil {
 		panic(err)
@@ -61,10 +63,10 @@ func CheckNet(net wire.BitcoinNet) {
 	var magicbytes [4]byte
 	f.Read(magicbytes[:])
 
-	bytesToMatch := U32tLB(uint32(net))
+	bytesToMatch := U32tLB(uint32(p.Net))
 
 	if bytes.Compare(magicbytes[:], bytesToMatch) != 0 {
-		switch net {
+		switch p.Net {
 		case wire.TestNet3:
 			fmt.Println("Option -net=testnet given but .dat file is NOT a testnet file.")
 		case wire.MainNet:

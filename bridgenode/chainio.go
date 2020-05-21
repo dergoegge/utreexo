@@ -3,7 +3,7 @@ package bridgenode
 import (
 	"os"
 
-	"github.com/btcsuite/btcd/wire"
+	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/mit-dci/utreexo/accumulator"
 	"github.com/mit-dci/utreexo/util"
 )
@@ -11,13 +11,13 @@ import (
 // createOffsetData restores the offsetfile needed to index the
 // blocks in the raw blk*.dat and raw rev*.dat files.
 func createOffsetData(
-	net wire.BitcoinNet, offsetFinished chan bool) (
+	p chaincfg.Params, offsetFinished chan bool) (
 	lastIndexOffsetHeight int32, err error) {
 
 	// Set the Block Header hash
 	// buildOffsetFile matches the header hash to organize
 	// for blk*.dat files
-	hash, err := util.GenHashForNet(net)
+	hash, err := util.GenHashForNet(p)
 	if err != nil {
 		return 0, err
 	}

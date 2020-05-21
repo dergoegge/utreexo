@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/btcsuite/btcd/wire"
+	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/mit-dci/utreexo/accumulator"
 	"github.com/mit-dci/utreexo/util"
 	"github.com/mit-dci/utreexo/util/ttl"
@@ -17,7 +17,7 @@ import (
 
 // build the bridge node / proofs
 func BuildProofs(
-	net wire.BitcoinNet, ttlpath, offsetfile string, sig chan bool) error {
+	net chaincfg.Params, ttlpath, offsetfile string, sig chan bool) error {
 
 	// Channel to alert the tell the main loop it's ok to exit
 	haltRequest := make(chan bool, 1)

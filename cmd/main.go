@@ -7,7 +7,8 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/btcsuite/btcd/wire"
+	"github.com/btcsuite/btcd/chaincfg"
+
 	bridge "github.com/mit-dci/utreexo/bridgenode"
 	"github.com/mit-dci/utreexo/csn"
 )
@@ -37,19 +38,19 @@ func main() {
 	}
 	var ttldb, offsetfile string
 	optionCmd.Parse(os.Args[2:])
-	var net wire.BitcoinNet
+	var param chaincfg.Params // wire.BitcoinNet
 	if *netCmd == "testnet" {
 		ttldb = "testnet-ttldb"
 		offsetfile = "testnet-offsetfile"
-		net = wire.TestNet3
+		param = chaincfg.TestNet3Params
 	} else if *netCmd == "regtest" {
 		ttldb = "regtest-ttldb"
 		offsetfile = "regtest-offsetfile"
-		net = wire.TestNet // yes, this is the name of regtest in lit
+		param = chaincfg.RegressionNetParams
 	} else if *netCmd == "mainnet" {
 		ttldb = "ttldb"
 		offsetfile = "offsetfile"
-		net = wire.MainNet
+		param = chaincfg.MainNetParams
 	} else {
 		fmt.Println("Invalid net flag given.")
 		fmt.Println(msg)
@@ -61,12 +62,12 @@ func main() {
 
 	switch os.Args[1] {
 	case "ibdsim":
-		err := csn.RunIBD(net, offsetfile, ttldb, sig)
+		err := csn.RunIBD(&param, offsetfile, ttldb, sig)
 		if err != nil {
 			panic(err)
 		}
 	case "genproofs":
-		err := bridge.BuildProofs(net, ttldb, offsetfile, sig)
+		err := bridge.BuildProofs(param, ttldb, offsetfile, sig)
 		if err != nil {
 			panic(err)
 		}
