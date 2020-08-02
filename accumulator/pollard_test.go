@@ -33,6 +33,28 @@ func TestPollardFixed(t *testing.T) {
 	}
 }
 
+func TestPollardCachedProof(t *testing.T) {
+	var p Pollard
+
+	leaves := make([]Leaf, 15)
+
+	for j, _ := range leaves {
+		leaves[j].Hash[0] = uint8(0xFF)
+		leaves[j].Hash[1] = uint8(j)
+
+		leaves[j].Remember = j < 3
+	}
+
+	err := p.Modify(leaves, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	fmt.Println(p.ToString())
+	needed, cached, _ := p.ProbeCache([]uint64{2, 9, 10})
+	fmt.Println(needed, cached)
+}
+
 func pollardRandomRemember(blocks int32) error {
 
 	// ffile, err := os.Create("/dev/shm/forfile")
