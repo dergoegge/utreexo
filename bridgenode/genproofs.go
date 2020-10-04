@@ -149,9 +149,11 @@ func BuildProofs(
 	// wait until dbWorker() has written to the ttldb file
 	// allows leveldb to close gracefully
 	batchwg.Wait()
+	fmt.Println("ttl db done writing")
 
 	// Wait for the file workers to finish
 	fileWait.Wait()
+	fmt.Println("done writing proofs")
 
 	// Save the current state so genproofs can be resumed
 	err = saveBridgeNodeData(forest, height, forestInRam, cowForest)
@@ -305,14 +307,13 @@ func stopBuildProofs(
 	case <-sig:
 	}
 
-	trace.Stop()
-	pprof.StopCPUProfile()
-
 	// Sometimes there are bugs that make the program run forever.
 	// Utreexo binary should never take more than 10 seconds to exit
 	go func() {
 		time.Sleep(60 * time.Second)
 		fmt.Println("Program timed out. Force quitting. Data likely corrupted")
+		trace.Stop()
+		pprof.StopCPUProfile()
 		os.Exit(1)
 	}()
 
@@ -338,5 +339,7 @@ func stopBuildProofs(
 
 	// Wait until BuildProofs() or buildOffsetFile() says it's ok to exit
 	<-haltAccept
+	trace.Stop()
+	pprof.StopCPUProfile()
 	os.Exit(0)
 }
