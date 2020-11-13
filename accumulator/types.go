@@ -37,8 +37,9 @@ type arrow struct {
 
 // Node :
 type node struct {
-	Pos uint64
-	Val Hash
+	Pos      uint64
+	OverWire bool
+	Val      Hash
 }
 
 // Leaf contains a hash and a hint about whether it should be saved to

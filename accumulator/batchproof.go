@@ -227,7 +227,7 @@ func verifyBatchProof(bp BatchProof, roots []Hash, numLeaves uint64,
 		target = targetNodes[0]
 		if len(proofPositions) > 0 && target.Pos^1 == proofPositions[0] {
 			// target has a sibling in the proof positions, fetch proof
-			proof = node{Pos: proofPositions[0], Val: bp.Proof[0]}
+			proof = node{Pos: proofPositions[0], Val: bp.Proof[0], OverWire: true}
 			proofPositions = proofPositions[1:]
 			bp.Proof = bp.Proof[1:]
 			targetNodes = targetNodes[1:]
