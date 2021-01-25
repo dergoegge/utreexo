@@ -4,6 +4,10 @@ import (
 	"fmt"
 )
 
+type miniTree struct {
+	parent, left, right node
+}
+
 // IngestBatchProof populates the Pollard with all needed data to delete the
 // targets in the block proof
 func (p *Pollard) IngestBatchProof(bp BatchProof) error {
@@ -45,59 +49,77 @@ func (p *Pollard) IngestBatchProof(bp BatchProof) error {
 
 // populate takes a root and populates it with the nodes of the paritial proof tree that was computed
 // in `verifyBatchProof`.
-func (p *Pollard) populate(root *polNode, pos uint64, trees [][3]node, polNodes []polNode) int {
+func (p *Pollard) populate(root *polNode, pos uint64, trees []miniTree, polNodes []polNode) int {
+	if len(trees) == 0 {
+		return 0
+	}
+
 	// a stack to traverse the pollard
 	type stackElem struct {
-		trees [][3]node
-		node  *polNode
 		pos   uint64
+		trees []miniTree
+		node  *polNode
 	}
-	stack := make([]stackElem, 0, len(trees))
-	stack = append(stack, stackElem{trees, root, pos})
+	stack := make([]stackElem, len(trees)*2)
+	stackIndex := 0
+	// Put first elem on the stack (the root)
+	stack[stackIndex] = stackElem{pos, trees, root}
+
 	rows := p.rows()
 	nodesAllocated := 0
-	for len(stack) > 0 {
-		elem := stack[len(stack)-1]
-		stack = stack[:len(stack)-1]
+	for stackIndex >= 0 {
+		// Pop elem from stack
+		elem := stack[stackIndex]
 
 		if elem.pos < p.numLeaves {
 			// this is a leaf, we are done populating this branch.
+			stackIndex--
 			continue
 		}
 
 		leftChild := child(elem.pos, rows)
 		rightChild := child(elem.pos, rows) | 1
 		var left, right *polNode
-		i := len(elem.trees) - 1
+		i := 0
 	find_nodes:
-		for ; i >= 0; i-- {
-			switch elem.trees[i][0].Pos {
-			case elem.pos:
+		for ; i < len(elem.trees); i++ {
+			switch {
+			case elem.trees[i].parent.Pos == elem.pos:
 				fallthrough
-			case rightChild:
+			case elem.trees[i].parent.Pos == rightChild:
 				if elem.node.niece[0] == nil {
 					elem.node.niece[0] = &polNodes[nodesAllocated]
 					nodesAllocated++
 				}
 				right = elem.node.niece[0]
-				right.data = elem.trees[i][1].Val
+				right.data = elem.trees[i].left.Val
 				fallthrough
-			case leftChild:
+			case elem.trees[i].parent.Pos == leftChild:
 				if elem.node.niece[1] == nil {
 					elem.node.niece[1] = &polNodes[nodesAllocated]
 					nodesAllocated++
 				}
 				left = elem.node.niece[1]
-				left.data = elem.trees[i][2].Val
+				left.data = elem.trees[i].right.Val
 				break find_nodes
 			}
 		}
-		if i < 0 {
+		if i >= len(elem.trees) {
+			stackIndex--
 			continue
 		}
 
-		stack = append(stack,
-			stackElem{trees[:i], left, leftChild}, stackElem{trees[:i], right, rightChild})
+		// Put the next two elems on stack (right/left branch)
+		stack[stackIndex] = stackElem{leftChild, trees[i+1:], left} // technically the pop happens here because we override `elem`
+
+		stackIndex++
+		if stackIndex >= len(stack) {
+			// TODO: we could resize here, if this actually happens
+			panic("populate() stack was too small")
+		}
+
+		stack[stackIndex] = stackElem{rightChild, trees[i+1:], right}
+		// No stackIndex-- here because we pop this last added elem next iteration
 	}
 	return nodesAllocated
 }

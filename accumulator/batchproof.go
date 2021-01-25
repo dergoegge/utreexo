@@ -232,7 +232,7 @@ func verifyBatchProof(bp BatchProof, roots []Hash, numLeaves uint64,
 	// cached should be a function that fetches nodes from the pollard and
 	// indicates whether they exist or not, this is only useful for the pollard
 	// and nil should be passed for the forest.
-	cached func(pos uint64) (bool, Hash)) (bool, [][3]node, []node) {
+	cached func(pos uint64) (bool, Hash)) (bool, []miniTree, []node) {
 	if len(bp.Targets) == 0 {
 		return true, nil, nil
 	}
@@ -266,7 +266,8 @@ func verifyBatchProof(bp BatchProof, roots []Hash, numLeaves uint64,
 	// is the right child.
 	// trees holds the entire proof tree of the batchproof in this way,
 	// sorted by the tuple[0].
-	trees := make([][3]node, 0, len(computablePositions))
+	trees := make([]miniTree, len(computablePositions))
+	treeIndex := len(trees) - 1
 	// initialise the targetNodes for row 0.
 	// TODO: this would be more straight forward if bp.Proofs wouldn't
 	// contain the targets
@@ -354,7 +355,9 @@ func verifyBatchProof(bp BatchProof, roots []Hash, numLeaves uint64,
 			return false, nil, nil
 		}
 
-		trees = append(trees, [3]node{{Val: hash, Pos: parentPos}, left, right})
+		//trees = append(trees, [3]node{{Val: hash, Pos: parentPos}, left, right})
+		trees[treeIndex] = miniTree{parent: node{Val: hash, Pos: parentPos}, left: left, right: right}
+		treeIndex--
 
 		row := detectRow(parentPos, rows)
 		if numLeaves&(1<<row) > 0 && parentPos == rootPosition(numLeaves, row, rows) {
@@ -387,6 +390,7 @@ func verifyBatchProof(bp BatchProof, roots []Hash, numLeaves uint64,
 		return false, nil, nil
 	}
 
+	trees = trees[treeIndex+1:]
 	return true, trees, rootCandidates
 }
 
