@@ -197,6 +197,28 @@ func TestCowForestAddDel(t *testing.T) {
 	}
 }
 
+func HashFromInt(num int) Hash {
+	return Hash{uint8(num), uint8(num >> 8), uint8(num >> 16), uint8(num >> 32), 0xFF}
+}
+
+func TestForestCppCompat(t *testing.T) {
+	f := NewForest(nil, false, "", 0)
+	adds := make([]Leaf, 32)
+	for i, _ := range adds {
+		adds[i].Hash = HashFromInt(i)
+	}
+	f.Modify(adds, nil)
+	fmt.Println(f.ToString())
+	proof, _ := f.ProveBatch([]Hash{adds[0].Hash, adds[2].Hash, adds[3].Hash, adds[9].Hash})
+	fmt.Println(proof.ToString())
+
+	f.Modify(nil, proof.Targets)
+	fmt.Println(f.ToString())
+	for _, root := range f.getRoots() {
+		fmt.Printf("%x\n", root)
+	}
+}
+
 func TestForestFixed(t *testing.T) {
 	f := NewForest(nil, false, "", 0)
 	numadds := 5

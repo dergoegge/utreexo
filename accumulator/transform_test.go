@@ -24,3 +24,10 @@ func TestGetTop(t *testing.T) {
 
 	fmt.Printf("%d leaves, top at h %d is %d\n", nl, h, root)
 }
+
+func TestTransCompat(t *testing.T) {
+	swaps := remTrans2([]uint64{0, 3, 4, 5, 6}, 8, treeRows(8))
+	for i, s := range swaps {
+		fmt.Println(i, s)
+	}
+}
