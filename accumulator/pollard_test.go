@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math/rand"
 	"testing"
+	"time"
 )
 
 func TestPollardRand(t *testing.T) {
@@ -35,7 +36,7 @@ func TestPollardFixed(t *testing.T) {
 
 func TestPollardSimpleIngest(t *testing.T) {
 	f := NewForest(nil, false, "", 0)
-	adds := make([]Leaf, 15)
+	adds := make([]Leaf, 8)
 	for i := 0; i < len(adds); i++ {
 		adds[i].Hash[0] = uint8(i + 1)
 	}
@@ -43,21 +44,22 @@ func TestPollardSimpleIngest(t *testing.T) {
 	f.Modify(adds, []uint64{})
 	fmt.Println(f.ToString())
 
-	hashes := make([]Hash, len(adds))
-	for i := 0; i < len(hashes); i++ {
-		hashes[i] = adds[i].Hash
-	}
+	hashes := make([]Hash, 5)
+	hashes[0] = adds[0].Hash
+	hashes[1] = adds[3].Hash
+	hashes[2] = adds[4].Hash
+	hashes[3] = adds[5].Hash
+	hashes[4] = adds[6].Hash
 
 	bp, _ := f.ProveBatch(hashes)
 
 	var p Pollard
 	p.Modify(adds, nil)
 	// Modify the proof so that the verification should fail.
-	bp.Proof[0][0] = 0xFF
-	err := p.IngestBatchProof(bp)
-	if err == nil {
-		t.Fatal("BatchProof valid after modification. Accumulator validation failing")
-	}
+	p.IngestBatchProof(bp)
+
+	p.Modify(nil, bp.Targets)
+	fmt.Println(p.ToString())
 }
 
 func pollardRandomRemember(blocks int32) error {
@@ -282,5 +284,41 @@ func TestCache(t *testing.T) {
 				t.Fatal("proof for leaf at", pos, "does exist but it was added with remember=false")
 			}
 		}
+	}
+}
+
+func BenchmarkVerify(b *testing.B) {
+
+	f := NewForest(nil, false, "", 0)
+	var p Pollard
+
+	adds := make([]Leaf, 1000000)
+
+	for j, _ := range adds {
+		adds[j].Hash[1] = uint8(j)
+		adds[j].Hash[2] = uint8(j >> 8)
+		adds[j].Hash[3] = uint8(j >> 16)
+		adds[j].Hash[4] = uint8(j >> 24)
+		adds[j].Hash[9] = uint8(0xff)
+	}
+
+	f.Modify(adds, nil)
+	p.Modify(adds, nil)
+
+	delHashes := make([]Hash, 10000)
+	for j, _ := range delHashes {
+		delHashes[j] = adds[j].Hash
+	}
+	fmt.Println("num_targets verify_time prove_time")
+	for i := 1; i < len(delHashes); i++ {
+		proveStart := time.Now()
+		bp, _ := f.ProveBatch(delHashes[:i])
+		proveDuration := time.Since(proveStart)
+
+		verifyStart := time.Now()
+		p.IngestBatchProof(bp)
+		verifyDuration := time.Since(verifyStart)
+
+		fmt.Println(i, verifyDuration.Nanoseconds(), proveDuration.Nanoseconds())
 	}
 }
